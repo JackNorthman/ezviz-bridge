@@ -1,0 +1,30 @@
+# ezviz-bridge: EZVIZ battery doorbell (e.g. HP3) -> local MQTT / Home Assistant.
+# Subscribes to the EZVIZ push channel (the one that rings your phone), pulls the
+# alarm snapshot, runs YOLO11n (ONNX, CPU) for person/cat/dog, and publishes
+# Home Assistant MQTT-discovery entities. Battery EZVIZ doorbells have no local
+# stream (no RTSP/ONVIF), so this push-based route is the only way into HA/MQTT.
+#
+# Setup: cp .env.example .env, fill it in (chmod 600, never commit it), put
+# yolo11n.onnx in ./models (see README), then: docker compose up -d --build
+services:
+  ezviz-bridge:
+    build: .
+    image: ezviz-bridge:local      # fixed name so review.sh / classify_clip.sh / the tests can find it
+    container_name: ezviz-bridge
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./models:/models:ro
+      - ./data:/data
+    mem_limit: 768m
+    cpu_shares: 256
+    # Optional Uptime Kuma heartbeat: if Kuma runs in Docker on the same host and is only
+    # published on 127.0.0.1, join its network so KUMA_PUSH_URL=http://uptime-kuma:3001/... resolves.
+    # networks:
+    #   - default
+    #   - kuma_net
+# networks:
+#   kuma_net:
+#     external: true
+#     name: uptime-kuma_default    # the network name of your Kuma stack
